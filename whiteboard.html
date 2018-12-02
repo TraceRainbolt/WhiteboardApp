@@ -1,0 +1,481 @@
+<html>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="fabric.min.js"></script>
+    <script type="text/javascript">
+
+    var canvas;
+
+    var textMode = false;
+    var currentText;
+    var messageText;
+
+    var lineSize = 8;
+
+    var holdingDown;
+
+    var messages = new Array();
+    var messageHeight = 0;
+    
+    function init() {
+        canvas = new fabric.Canvas('canvas');
+        canvas.isDrawingMode = true;
+        canvas.preserveObjectStacking = true;
+        canvas.selection = false;
+        canvas.freeDrawingBrush.width = lineSize;
+
+        canvas.on('mouse:down', function(opt) {
+            holdingDown = true;
+            setTimeout(function(){
+                if(holdingDown){
+                    hideAllButtons();
+                }
+            }, 500);
+
+            if(textMode){
+                drawText(opt);
+            }
+        });
+
+        canvas.on('mouse:up', function(opt) {
+            holdingDown = false;
+            showAllButtons();
+        });
+
+    }
+
+    function drawText(opt){
+        var mouse = canvas.getPointer(opt.e);
+        var text = new fabric.IText('', { left: mouse.x, top: mouse.y });
+        canvas.add(text);
+        text.selectable = false;
+        text.enterEditing();
+        currentText = text;
+    }
+
+    function changeColor(obj){
+        if(obj.id === "eraser"){
+            canvas.freeDrawingBrush.color = 'white';
+        } else {
+            canvas.freeDrawingBrush.color = obj.id;
+            $("#color").attr("src", "UI Images/color_" + obj.id + ".png");
+        }
+        $("#colors").hide();
+    }
+
+    function resetAllButtons(){
+        var old_color = $("#color").attr("src").substring(16);
+        if(old_color[0] == 'p')
+             old_color = old_color.substring(2);
+        $("#size").attr("src", "UI Images/size.png");
+        $("#color").attr("src", "UI Images/color_" + old_color);
+        $("#text").attr("src", "UI Images/text.png");
+        $("#eraser").attr("src", "UI Images/eraser.png");
+        $("#colors").hide();
+
+        textMode = false;
+        try {
+            currentText.exitEditing();
+        } 
+        catch {
+            //nothing
+        }
+    }
+
+    function hideAllButtons(){
+        $("#size").fadeOut();
+        $("#color").fadeOut();
+        $("#text").fadeOut();
+        $("#eraser").fadeOut();
+        $("#file").fadeOut();
+        $("#message").fadeOut();
+        $("#monitor").fadeOut();
+        $("#colors").hide();
+        $("#file-options").hide();
+    }
+
+    function showAllButtons(){
+        $("#size").fadeIn();
+        $("#color").fadeIn();
+        $("#text").fadeIn();
+        $("#eraser").fadeIn();
+        $("#file").fadeIn();
+        $("#message").fadeIn();
+        $("#monitor").fadeIn();
+    }
+
+    function size(img){
+        resetAllButtons();
+        img.src = "UI Images/size_p.png";
+        $("#size-options").toggle();
+        canvas.isDrawingMode = true;
+    }
+
+    function changeSize(size){
+        switch (size) {
+            case "small":
+                canvas.freeDrawingBrush.width = 8;
+                break;
+            case "med":
+                canvas.freeDrawingBrush.width = 18;
+                break;
+            case "large":
+                canvas.freeDrawingBrush.width = 38;
+                break;
+        }
+
+        lineSize = canvas.freeDrawingBrush.width;
+        $("#size-options").toggle();
+        $("#size").attr("src", "UI Images/size.png");
+    }
+
+    function color(img) {
+        var old_color = $("#color").attr("src").substring(16);
+
+        canvas.freeDrawingBrush.width = lineSize;
+        resetAllButtons();
+        canvas.isDrawingMode = true;
+
+        if(old_color.substring(0, 1) !== "p")
+            img.src = "UI Images/color_p_" + old_color;
+        $("#colors").toggle();
+    }
+
+    function text(img){
+        var objs = canvas.getObjects();
+
+        objs.forEach((o) => o.selectable = false);
+
+        resetAllButtons();
+        img.src = "UI Images/text_p.png";
+        canvas.isDrawingMode = false;
+        textMode = true;
+    }
+
+    function eraser(img){
+        resetAllButtons();
+        img.src = "UI Images/eraser_p.png";
+        changeColor(img);
+        canvas.freeDrawingBrush.width = 40;
+        canvas.isDrawingMode = true;
+    }
+
+    function file(img){
+        img.src = "UI Images/file_p.png";
+        $("#file-options").toggle();
+    }
+
+    function wipe() {
+        canvas.clear();
+
+        $("#file-options").toggle();
+        $("#file").attr("src", "UI Images/file.png");
+    }
+
+    function newScreen(){
+        $("#draw-ui").fadeOut(200);
+        canvas.isDrawingMode = false;
+
+        var background = new fabric.Rect({
+            height: canvas.height, 
+            width: canvas.width, 
+            fill: 'white'
+        });
+        background.selectable = false;
+        canvas.add(background);
+        return background;
+    }
+
+    function message(){
+        var background = newScreen();
+        $("#message-ui").show();
+        msgText = new fabric.IText('', { left: 55, top: 1190, fontFamily: 'Century Gothic'});
+
+        var img1, img2;
+        var textArea = new fabric.Image.fromURL('UI Images/text_area.png', function(img){
+            img.selectable = false;
+            canvas.add(img);
+            msgText.bringToFront();
+            msgText.enterEditing();
+            img1 = img;
+        }, {top: 1146, left: 14} );
+
+        var topBar = new fabric.Image.fromURL('UI Images/topbar.png', function(img){
+            img.selectable = false;
+            canvas.add(img);
+            img.sendBackwards();
+            img2 = img;
+        });
+
+        var backBtn = new fabric.Image.fromURL('UI Images/back.png', function(img){
+            img.selectable = false;
+            canvas.add(img);
+            img.on('mousedown', function(e){
+                msgText.exitEditing();
+                canvas.remove(msgText);
+                canvas.remove(img);
+                canvas.remove(img1);
+                canvas.remove(img2);
+                canvas.remove(background);
+                messages.forEach(function (msg){
+                    canvas.remove(msg.txt);
+                    canvas.remove(msg.bubble);
+                });
+                canvas.isDrawingMode = true;
+                $("#message-ui").hide();
+                $("#draw-ui").show();
+            });
+            img.bringForward();
+        }, {top: 10, left: 10});
+
+        messages.forEach(function (msg){
+            canvas.add(msg.txt);
+            canvas.add(msg.bubble);
+            msg.bubble.bringToFront();
+            msg.txt.bringToFront();
+        });
+
+        canvas.add(msgText); 
+    }
+
+    function send(){
+        msgText.exitEditing();
+
+        const msgPad = 36;
+
+        var bubbleTxt = new fabric.Text(msgText.text, {
+            left: 500, 
+            top: 200 + messageHeight, 
+            fill: 'white',
+            fontFamily: 'Century Gothic',
+            fontSize: 26,
+        });
+
+        var bubble = new fabric.Rect({
+            left: 480,
+            top: 180 + messageHeight,
+            height: bubbleTxt.height + msgPad, 
+            width: 570, 
+            fill: '#1e8dff',
+            rx: 15,
+            ry: 15,
+            stroke: "#1f73ca",
+            strokeWidth: 5
+        });
+
+        messageHeight += bubbleTxt.height + msgPad + 40;
+
+        canvas.add(bubble);
+        canvas.add(bubbleTxt);
+
+        bubbleTxt.bringToFront();
+        msgText.text = '';
+        msgText.enterEditing();
+        messages.push({txt: bubbleTxt, bubble: bubble});
+    }
+
+    function monitor(){
+        var background = newScreen();
+
+        var screen_imgs = new Array();
+        var proj_btns = new Array();
+
+        var btn_area = new fabric.Image.fromURL('UI Images/btnback.png', function(img){
+            img.selectable = false;
+            canvas.add(img);
+            screen_imgs.push(img);
+
+            var project_all = new fabric.Image.fromURL('UI Images/project_all.png', function(pa_img){
+                pa_img.on('mousedown', function(e){
+                    proj_btns.forEach(function(proj_btn){
+                        proj_btn.btn.setSrc('UI Images/stop_project.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        proj_btn.screen.setSrc('UI Images/screen_proj.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        proj_btn.btn.pressed = true;
+                    });
+                });
+
+                pa_img.selectable = false;
+                canvas.add(pa_img);
+                screen_imgs.push(pa_img);
+                pa_img.bringToFront();
+            }, {top: 1168, left: 36} );
+
+            var stop_project = new fabric.Image.fromURL('UI Images/stop_project_all.png', function(sp_img){
+                sp_img.on('mousedown', function(e){
+                    proj_btns.forEach(function(proj_btn){
+                        proj_btn.btn.setSrc('UI Images/press_project.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        proj_btn.screen.setSrc('UI Images/screen.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        proj_btn.btn.pressed = false;
+                    });
+                });
+                sp_img.selectable = false;
+                canvas.add(sp_img);
+                screen_imgs.push(sp_img);
+                sp_img.bringToFront();
+            }, {top: 1168, left: 646} );
+        }, {top: 1146, left: 14} );
+
+        var topBar = new fabric.Image.fromURL('UI Images/topbar.png', function(img){
+            img.selectable = false;
+            canvas.add(img);
+            screen_imgs.push(img);
+            var backBtn = new fabric.Image.fromURL('UI Images/back.png', function(bb_img){
+                bb_img.selectable = false;
+                canvas.add(bb_img);
+                bb_img.on('mousedown', function(e){
+                    canvas.remove(background);
+                    screen_imgs.forEach((o) => canvas.remove(o));
+                    canvas.isDrawingMode = true;
+                    $("#draw-ui").show();
+                });
+                bb_img.bringToFront();
+                screen_imgs.push(bb_img);
+
+            var title = new fabric.Text('Student Monitoring', { 
+                top: 20,
+                left: 370, 
+                fontFamily: 'Century Gothic',
+                fontSize: 40
+            });
+
+            var info = new fabric.Text('Click a screen to view an individual student', { 
+                top: 67,
+                left: 270, 
+                fontFamily: 'Century Gothic',
+                fontSize: 26
+            });
+            canvas.add(title);
+            canvas.add(info);
+            screen_imgs.push(info);
+            screen_imgs.push(title);
+            }, {top: 10, left: 10});
+        });
+
+        for(i = 0; i < 4; i++){
+            for(j = 0; j < 2; j++){
+                if(Math.random() > 0.3)
+                    generateScreen(screen_imgs, proj_btns, "active", i, j);
+                else 
+                    generateScreen(screen_imgs, proj_btns, "inactive", i, j);
+            }
+        }
+    }
+
+    function generateScreen(screen_imgs, proj_btns, type, i, j){
+        var space = (50 + 260 * i);
+        var height = 460 * j;
+
+        var screen = new fabric.Image.fromURL('UI Images/screen.png', function(img){
+            img.selectable = false;
+            canvas.add(img);
+            screen_imgs.push(img);
+            img.bringToFront();
+
+            var activity = new fabric.Image.fromURL('UI Images/' + type + '.png', function(active_img){
+                active_img.selectable = false;
+                canvas.add(active_img);
+                screen_imgs.push(active_img);
+                active_img.bringToFront();
+                var name = new fabric.Text('Student Name', { 
+                    top: 463 + height,
+                    left: space + 19, 
+                    fontFamily: 'Century Gothic',
+                    fontSize: 23
+                });
+                canvas.add(name);
+                screen_imgs.push(name);
+            }, {top: 450 + height, left: space} );
+
+            var press_project = new fabric.Image.fromURL('UI Images/press_project.png', function(pp_img){
+                pp_img.selectable = false;
+                canvas.add(pp_img);
+                screen_imgs.push(pp_img);
+                proj_btns.push({btn: pp_img, screen: img});
+                pp_img.pressed = false;
+
+                pp_img.on('mousedown', function(e){
+                    if(!pp_img.pressed){
+                        pp_img.setSrc('UI Images/stop_project.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        img.setSrc('UI Images/screen_proj.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        pp_img.pressed = true;
+                    } else {
+                        pp_img.setSrc('UI Images/press_project.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        img.setSrc('UI Images/screen.png', function(){
+                            canvas.renderAll();
+                            canvas.calcOffset();
+                        });
+                        pp_img.pressed = false;
+                    }
+                });
+            }, {top: 150 + height, left: space} );
+        }, {top: 200 + height, left: space});
+    }
+
+    </script>
+    <body onload="init()" style="background: lightgrey">
+        <div style="position:absolute;top:11%;left:31.6%;">
+            <div  style="border:2px solid; background-color: white" >
+                <div id="draw-ui">
+                    <img id="size" style="position:absolute; z-index: 99; user-select: none;  top: 401; left: 20;" src="UI Images/size.png" onclick="size(this)"/>
+
+                    <img id="color" style="position:absolute; z-index: 99;  user-select: none; top: 504; left: 20;" src="UI Images/color_black.png" onclick="color(this)"//>
+
+                    <img id="text" style="position:absolute; z-index: 99; user-select: none; top: 612; left: 20;" src="UI Images/text.png" onclick="text(this)"//>
+
+                    <img id="eraser" style="position:absolute; z-index: 99; user-select: none; top: 722; left: 20;" src="UI Images/eraser.png" onclick="eraser(this)"//>
+
+                    <img id="file" style="position:absolute; z-index: 99; user-select: none; top: 30; left: 20;" src="UI Images/file.png" onclick="file(this)"/ />
+
+                    <img id="message" style="position:absolute; z-index: 99; user-select: none; bottom: 30; left: 25;" src="UI Images/message.png" onclick="message()"/ />
+
+                    <img id="monitor" style="position:absolute; z-index: 99; user-select: none; bottom: 30; right: 30;" src="UI Images/monitor.png" onclick="monitor()"/ />
+
+                    <div id="file-options" hidden>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 220;" src="UI Images/open.png" onclick="open()"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 365;" src="UI Images/save.png" onclick="save()"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 500;" src="UI Images/clear.png" onclick="wipe()"/>
+                    </div>
+
+                    <div id="size-options" hidden>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 400; left: 150;" src="UI Images/size_large.png" onclick="changeSize('large')"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 453; left: 150;" src="UI Images/size_med.png" onclick="changeSize('med')"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 513; left: 150;" src="UI Images/size_small.png" onclick="changeSize('small')"/>
+                    </div>
+
+                    <div id="colors" style="z-index: 99;" hidden>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 504; left: 140;" src="UI Images/semi_circ.png"/>
+                        <img  id="red" style="position:absolute; user-select: none; z-index: 99; top: 624; left: 140;" src="UI Images/red.png" onclick="changeColor(this)"/>
+                        <img id="blue" style="position:absolute; user-select: none; z-index: 99; top: 490; left: 200;" src="UI Images/blue.png" onclick="changeColor(this)"/>
+                        <img id="black" style="position:absolute; user-select: none; z-index: 99; top: 442; left: 140;" src="UI Images/black.png" onclick="changeColor(this)"/>
+                        <img id="green" style="position:absolute; user-select: none; z-index: 99; top: 570; left: 200;" src="UI Images/green.png" onclick="changeColor(this)"/>
+                    </div>
+                </div>
+                <div id="message-ui" hidden>
+                    <img id="send" style="position:absolute; z-index: 99; user-select: none; bottom: 42; right: 38;" src="UI Images/send.png"/ onclick="send()"/>
+                </div>
+                <canvas id="canvas" width="1080" height="1398" onload="init()"></canvas>
+            </div>
+            <img src="UI Images/background.png" style="position:absolute;top: -11%;left: -5%; z-index: -99;"/>
+        </div>
+    </body>
+    </html>
