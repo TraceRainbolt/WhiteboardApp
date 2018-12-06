@@ -91,6 +91,7 @@
         $("#monitor").fadeOut();
         $("#colors").hide();
         $("#file-options").hide();
+        $("#file").attr("src", "UI Images/file.png");
     }
 
     function showAllButtons(){
@@ -188,7 +189,12 @@
     function message(){
         var background = newScreen();
         $("#message-ui").show();
-        msgText = new fabric.IText('', { left: 55, top: 1190, fontFamily: 'Century Gothic'});
+        msgText = new fabric.IText('', { 
+            left: 55, 
+            top: 1190, 
+            fontFamily: 'Century Gothic',
+            fontSize: 42
+        });
 
         var img1, img2;
         var textArea = new fabric.Image.fromURL('UI Images/text_area.png', function(img){
@@ -243,7 +249,7 @@
         const msgPad = 36;
 
         var bubbleTxt = new fabric.Text(msgText.text, {
-            left: 500, 
+            left: 1080 - msgText.width / (42 / 26) - 73, 
             top: 200 + messageHeight, 
             fill: 'white',
             fontFamily: 'Century Gothic',
@@ -251,10 +257,10 @@
         });
 
         var bubble = new fabric.Rect({
-            left: 480,
+            left: 1080 - bubbleTxt.width - 90,
             top: 180 + messageHeight,
             height: bubbleTxt.height + msgPad, 
-            width: 570, 
+            width: bubbleTxt.width + 30, 
             fill: '#1e8dff',
             rx: 15,
             ry: 15,
@@ -451,9 +457,11 @@
                     <img id="monitor" style="position:absolute; z-index: 99; user-select: none; bottom: 30; right: 30;" src="UI Images/monitor.png" onclick="monitor()"/ />
 
                     <div id="file-options" hidden>
-                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 220;" src="UI Images/open.png" onclick="open()"/>
-                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 365;" src="UI Images/save.png" onclick="save()"/>
-                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 500;" src="UI Images/clear.png" onclick="wipe()"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 220;" src="UI Images/homework.png" onclick="open()"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 365;" src="UI Images/quizes.png" onclick="open()"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 510;" src="UI Images/activities.png" onclick="open()"/>                 
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 655;" src="UI Images/save.png" onclick="save()"/>
+                        <img  style="position:absolute; user-select: none; z-index: 99; top: 35; left: 800;" src="UI Images/clear.png" onclick="wipe()"/>
                     </div>
 
                     <div id="size-options" hidden>
